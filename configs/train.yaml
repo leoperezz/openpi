@@ -1,0 +1,47 @@
+# OpenPI/JAX pi05 fine-tuning. Paths are relative to the repository root.
+dataset:
+  repo_id: NONHUMAN-RESEARCH/hanoi-rewards-triple
+  revision: main
+  root: null # Optional local LeRobot dataset directory (v3 or v2).
+  eval_split: 0.1 # Held-out EPISODES, never random frames.
+  eval_split_seed: 42
+  # Map the dataset cameras to the three pi05 image slots.
+  cameras:
+    base_0_rgb: observation.images.front
+    left_wrist_0_rgb: observation.images.side
+    right_wrist_0_rgb: observation.images.wrist
+  state_key: observation.state
+  action_key: action
+
+policy:
+  pretrained_path: gs://openpi-assets/checkpoints/pi05_base/params
+  action_horizon: 50
+
+job_name: hanoi-rewards-triple-pi05
+output_dir: outputs/training
+resume: false
+seed: 1000
+device: cuda:1 # Use only GPU 1; cuda:0 selects the first GPU.
+batch_size: 8 # Samples per update on the selected GPU; all model parameters are trained.
+num_workers: 8
+data_ratio: 1.5 # Effective epochs: ceil(data_ratio * train_frames / batch_size) updates.
+num_train_steps: 60000 # Used only when data_ratio is null.
+log_freq: 50
+eval_steps: 400
+max_eval_samples: 2048 # Fixed, seeded subset of held-out frames; null = all.
+save_steps: 400 # Periodically save last; also save on normal completion.
+fsdp_devices: 1
+
+optimizer:
+  learning_rate: 4.0e-5
+  weight_decay: 0.01
+  grad_clip_norm: 1.0
+  warmup_steps: 1000
+  decay_steps: 30000
+  end_learning_rate: 2.5e-6
+
+wandb:
+  enable: true
+  project: ocbench-openpi
+  entity: mu-robotics
+  mode: online # online, offline, disabled. Credentials: WANDB_API_KEY or wandb login.
